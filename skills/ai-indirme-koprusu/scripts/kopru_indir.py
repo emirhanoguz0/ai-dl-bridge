@@ -22,7 +22,20 @@ from pathlib import Path
 EXE_YOLU = Path(r"D:\Second_Brain\🏰 300-Projects\AI-Indirme-Koprusu\dist\ai-dl-bridge.exe")
 BASLANGIC_PORT, PORT_DENEME = 8765, 20   # run.py bos_port_bul ile ayni aralik
 ARIA2_PORT = 6800
-INDIRME_KLASORU = Path.home() / "Downloads" / "ai-dl-bridge"
+# Varsayılan: uygulamanın kendi downloads/ klasörü (exe yanı / proje kökü).
+# Kullanıcı menüden başka klasör seçtiyse sunucu ayarından okunur.
+import sys as _sys
+def _varsayilan_klasor() -> Path:
+    # Proje kökünü run.py/bridge işaretleriyle yukarı doğru ara
+    # (skill kopyası her yerde olabilir; derinlik varsayma).
+    for aday in [Path(__file__).resolve()] + list(Path(__file__).resolve().parents):
+        if (aday / "run.py").exists() and (aday / "bridge").is_dir():
+            return aday / "downloads"
+    if getattr(_sys, "frozen", False):
+        return Path(_sys.executable).parent / "downloads"
+    return Path.cwd() / "downloads"
+
+INDIRME_KLASORU = _varsayilan_klasor()
 GECMIS_DOSYA = Path(os.environ.get("APPDATA") or Path.home()) \
     / "ai-dl-bridge" / "gecmis.json"
 BEKLEME_SN = 3600

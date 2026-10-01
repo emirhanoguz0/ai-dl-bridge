@@ -122,8 +122,11 @@ class Pencere(QWidget):
         super().__init__(parent)
         self.rpc = rpc
         self.sunucu_portu = sunucu_portu
-        self.indirme_klasoru = Path(indirme_klasoru) if indirme_klasoru \
-            else Path.home() / "Downloads" / "ai-dl-bridge"
+        if indirme_klasoru:
+            self.indirme_klasoru = Path(indirme_klasoru)
+        else:
+            from bridge.paths import indirme_koku
+            self.indirme_klasoru = indirme_koku()
         self.klasor_secildi = klasor_secildi  # run.py'den klasör değişikliği callback'i
         self._secili: dict | None = None      # {gid, durum} seçili satır
         self._yollar: dict[str, str] = {}     # gid -> dosya yolu (klasör açmak için)

@@ -1,6 +1,8 @@
 """FastAPI sunucusu — Tek Kapı. AI'lar sadece POST /indir konuşur."""
 from __future__ import annotations
 
+import json
+import os
 import socket
 import time
 from contextlib import asynccontextmanager
@@ -11,12 +13,44 @@ from pydantic import BaseModel, Field
 
 from . import birlestirici
 from .aria2_rpc import Aria2RPC, Aria2Error
+from .paths import indirme_koku
 from .policy import degerlendir
 from .resolver import VideoCozumHatasi, coz, coz_video, temiz_ad, video_sitesi_mi
 
 BASLANGIC_PORT = 8765
-INDIRME_KLASORU = Path.home() / "Downloads" / "ai-dl-bridge"
+AYARLAR_DOSYASI = Path(os.environ.get("APPDATA") or Path.home()) \
+    / "ai-dl-bridge" / "ayarlar.json"
+
+
+def _ayarlanmis_klasor() -> Path:
+    """Kullanıcı daha önce klasör seçtiyse onu, yoksa uygulama içi downloads/'ı."""
+    try:
+        yol = Path(json.loads(AYARLAR_DOSYASI.read_text(encoding="utf-8"))
+                   .get("indirme_klasoru", ""))
+        if yol and yol.is_dir():
+            return yol
+    except (OSError, json.JSONDecodeError, ValueError):
+        pass
+    return indirme_koku()
+
+
+INDIRME_KLASORU = _ayarlanmis_klasor()
 INDIRME_KLASORU.mkdir(parents=True, exist_ok=True)
+
+
+def klasoru_degistir(yeni: Path) -> None:
+    """Yeni indirme klasörünü etkinleştirir ve kalıcı olarak kaydeder."""
+    global INDIRME_KLASORU
+    INDIRME_KLASORU = Path(yeni)
+    INDIRME_KLASORU.mkdir(parents=True, exist_ok=True)
+    try:
+        AYARLAR_DOSYASI.parent.mkdir(parents=True, exist_ok=True)
+        AYARLAR_DOSYASI.write_text(
+            json.dumps({"indirme_klasoru": str(INDIRME_KLASORU)},
+                       ensure_ascii=False, indent=1),
+            encoding="utf-8")
+    except OSError:
+        pass
 
 
 def bos_port_bul(baslangic: int = BASLANGIC_PORT, deneme: int = 20) -> int:

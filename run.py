@@ -89,8 +89,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0  # zaten çalışan bir örnek var; yenisini açma
 
     def klasor_secildi(yeni: str) -> None:
-        # Tek Kapı bundan sonra yeni klasöre indirsin
-        sunucu_modul.INDIRME_KLASORU = Path(yeni)
+        # Tek Kapı bundan sonra yeni klasöre indirsin ve seçimi kaydetsin
+        sunucu_modul.klasoru_degistir(Path(yeni))
 
     from ui.app import Pencere
     pencere = Pencere(rpc=daemon.rpc, sunucu_portu=sunucu_port,

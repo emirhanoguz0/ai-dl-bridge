@@ -32,7 +32,7 @@ durdurulabilmesi.
 
 ## Çıktı yeri
 
-`C:\Users\<kullanici>\Downloads\ai-dl-bridge\` — indirme büyükse sunucu kuyruğa alabilir;
+`downloads/` (uygulamanın kendi içindeki klasör — exe yanı / proje kökü) — indirme büyükse sunucu kuyruğa alabilir;
 betik bir kez otomatik devam ettirir.
 
 ## Ne zaman bu skill kullanılmaz

@@ -16,3 +16,6 @@ tools/ffmpeg.zip
 # İşletim sistemi artıkları
 Thumbs.db
 .DS_Store
+
+# İndirilen dosyalar (uygulama-içi varsayılan klasör)
+downloads/
