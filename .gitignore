@@ -1,0 +1,18 @@
+# PyInstaller çıktıları
+dist/
+build/
+*.spec.bak
+
+# Python artıkları
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Gömülü binary'ler — GitHub 100MB sınırı nedeniyle repoya girmezler.
+# Kurulum için tools/README.md'ye bakın.
+tools/*.exe
+tools/ffmpeg.zip
+
+# İşletim sistemi artıkları
+Thumbs.db
+.DS_Store
