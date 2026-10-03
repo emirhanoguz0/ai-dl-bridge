@@ -12,6 +12,7 @@ import argparse
 import json
 import os
 import socket
+import shutil
 import subprocess
 import sys
 import time
@@ -19,21 +20,42 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-EXE_YOLU = Path(r"D:\Second_Brain\🏰 300-Projects\AI-Indirme-Koprusu\dist\ai-dl-bridge.exe")
 BASLANGIC_PORT, PORT_DENEME = 8765, 20   # run.py bos_port_bul ile ayni aralik
 ARIA2_PORT = 6800
-# Varsayılan: uygulamanın kendi downloads/ klasörü (exe yanı / proje kökü).
-# Kullanıcı menüden başka klasör seçtiyse sunucu ayarından okunur.
-import sys as _sys
-def _varsayilan_klasor() -> Path:
-    # Proje kökünü run.py/bridge işaretleriyle yukarı doğru ara
-    # (skill kopyası her yerde olabilir; derinlik varsayma).
+
+
+def _proje_koku() -> Path | None:
+    """Proje kökünü run.py/bridge işaretleriyle yukarı doğru arar."""
     for aday in [Path(__file__).resolve()] + list(Path(__file__).resolve().parents):
         if (aday / "run.py").exists() and (aday / "bridge").is_dir():
-            return aday / "downloads"
-    if getattr(_sys, "frozen", False):
-        return Path(_sys.executable).parent / "downloads"
+            return aday
+    return None
+
+
+def _exe_bul() -> Path | None:
+    """Derlenmiş exe'yi proje dist klasöründen veya sistemden arar."""
+    kok = _proje_koku()
+    if kok:
+        dist_exe = kok / "dist" / "ai-dl-bridge.exe"
+        if dist_exe.is_file():
+            return dist_exe
+    yoldaki = shutil.which("ai-dl-bridge.exe")
+    if yoldaki:
+        return Path(yoldaki)
+    appdata = Path(os.environ.get("APPDATA") or Path.home()) / "ai-dl-bridge" / "ai-dl-bridge.exe"
+    if appdata.is_file():
+        return appdata
+    return None
+
+
+def _varsayilan_klasor() -> Path:
+    kok = _proje_koku()
+    if kok:
+        return kok / "downloads"
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent / "downloads"
     return Path.cwd() / "downloads"
+
 
 INDIRME_KLASORU = _varsayilan_klasor()
 GECMIS_DOSYA = Path(os.environ.get("APPDATA") or Path.home()) \
@@ -68,15 +90,25 @@ def port_bul() -> int | None:
 
 
 def sunucu_hazirla() -> int:
-    """Sunucu yoksa exe'yi gizli baslat, portu dondur."""
+    """Sunucu yoksa exe'yi veya geliştirme ortamında run.py'yi gizli başlatır, portu döndürür."""
     port = port_bul()
     if port:
         return port
-    if not EXE_YOLU.exists():
-        sys.exit(f"HATA: {EXE_YOLU} bulunamadi — once exe'yi derle.")
-    subprocess.Popen(
-        ["cmd", "/c", "start", "", "/min", str(EXE_YOLU), "--gizli"],
-        close_fds=True)
+
+    exe = _exe_bul()
+    if exe and exe.exists():
+        subprocess.Popen(
+            ["cmd", "/c", "start", "", "/min", str(exe), "--gizli"],
+            close_fds=True)
+    else:
+        kok = _proje_koku()
+        if kok and (kok / "run.py").is_file():
+            subprocess.Popen(
+                [sys.executable, str(kok / "run.py"), "--gizli"],
+                close_fds=True)
+        else:
+            sys.exit("HATA: ai-dl-bridge.exe veya run.py bulunamadı — önce derleyin veya ortamı kurun.")
+
     for _ in range(30):
         time.sleep(1)
         port = port_bul()

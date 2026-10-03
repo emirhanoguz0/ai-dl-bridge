@@ -1,17 +1,16 @@
-# Binary'ler (tools/)
+# Bundled Binaries (`tools/`)
 
-Bu klasördeki üç binary GitHub'a yüklenmez (`.gitignore`). Yeni bir kopya
-kurarken aynı dosya adlarıyla buraya koyun:
+The three companion binaries in this folder are portable standalone executables excluded from version control (`.gitignore`) to comply with GitHub file size guidelines:
 
-| Dosya | İndirme kaynağı |
-|---|---|
-| `aria2c.exe` | https://github.com/aria2/aria2/releases (win-64bit) |
-| `yt-dlp.exe` | https://github.com/yt-dlp/yt-dlp/releases (yt-dlp.exe) |
-| `ffmpeg.exe` | https://github.com/BtbN/FFmpeg-Builds/releases (`...-win64-gpl.zip` içinden `bin/ffmpeg.exe`) |
+| Binary | Recommended Source | Role |
+|---|---|---|
+| `aria2c.exe` | [aria2 Releases](https://github.com/aria2/aria2/releases) (win-64bit) | Multi-connection download engine & JSON-RPC daemon |
+| `yt-dlp.exe` | [yt-dlp Releases](https://github.com/yt-dlp/yt-dlp/releases) (`yt-dlp.exe`) | Video metadata & direct stream URL resolver |
+| `ffmpeg.exe` | [BtbN FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (from `bin/ffmpeg.exe`) | Lossless DASH audio/video muxer (`-c copy`) |
 
-Üçü de taşınabilir (kurulum gerektirmez). `aria2c` ve `ffmpeg` isteğe bağlı
-olarak PATH'te de olabilir; yoksa gömülü olanlar kullanılır — ama video
-birleştirme için `ffmpeg.exe` bu klasörde bulunmalıdır.
+## Setup Notes
 
-Logo yeniden üretmek isterseniz: `python tools/logo_hazirla.py`
-(kaynak çizim masaüstündeki `ADLB.png`yi okur).
+1. Place the three `.exe` files directly into this `tools/` directory.
+2. All three binaries are portable and require no installer.
+3. While `aria2c` and `ffmpeg` can also be resolved from the system `PATH`, bundling them into `tools/` ensures seamless PyInstaller packaging (`ai-dl-bridge.spec`) into a single standalone `.exe`.
+4. To regenerate application icons: `python tools/logo_hazirla.py`.
