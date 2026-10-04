@@ -31,6 +31,7 @@ jobs:
       - name: Install aria2
         run: |
           choco install aria2 --no-progress
+          echo "C:\ProgramData\chocolatey\bin" >> $env:GITHUB_PATH
 
       - name: Run test suite
         run: |
