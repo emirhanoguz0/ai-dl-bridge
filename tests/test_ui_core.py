@@ -63,7 +63,7 @@ class TestOtomatikBaslatma:
         assert autostart.aktif_mi() is False
         autostart.etkinlestir()
         assert autostart.aktif_mi() is True
-        assert "--gizli" in sahte.depo[autostart.ANAHTAR_ADI]
+        assert "--tray" in sahte.depo[autostart.ANAHTAR_ADI]
         autostart.devre_disi_birak()
         assert autostart.aktif_mi() is False
 
@@ -71,7 +71,7 @@ class TestOtomatikBaslatma:
         from ui import autostart
         monkeypatch.setattr(autostart.sys, "frozen", True, raising=False)
         komut = autostart.baslatma_komutu()
-        assert komut.startswith('"') and "--gizli" in komut
+        assert komut.startswith('"') and "--tray" in komut
 
 
 class TestYollar:
@@ -128,14 +128,14 @@ class TestViewmodel:
                            "downloadSpeed": "1024",
                            "files": [{"path": "/dl/dosya.zip"}]})
         assert aktif["renk"] == "#6fbf9e" and aktif["yuzde"] == 47
-        assert aktif["aksiyonlar"] == ["durdur", "iptal"]
+        assert aktif["actions"] == ["pause", "cancel"]
         assert aktif["baslik"] == "dosya.zip"
 
         durak = satir_yap({"gid": "g2", "status": "paused", "files": []})
-        assert durak["aksiyonlar"] == ["devam", "iptal"]
+        assert durak["actions"] == ["resume", "cancel"]
 
         bitti = satir_yap({"gid": "g3", "status": "complete", "files": []})
-        assert bitti["bitti"] and bitti["aksiyonlar"] == []
+        assert bitti["bitti"] and bitti["actions"] == []
 
         hata = satir_yap({"gid": "g4", "status": "error", "files": []})
         assert hata["renk"] == "#d98c8c"
@@ -155,7 +155,7 @@ class TestDaemon:
         from ui.daemon import DaemonHatasi, binary_bul
         with patch("ui.daemon.Path.exists", return_value=False), \
              patch("ui.daemon.shutil.which", return_value=None), \
-             pytest.raises(DaemonHatasi, match="aria2c bulunamadı"):
+             pytest.raises(DaemonHatasi, match="aria2c not found"):
             binary_bul()
 
     def test_binary_varsa_yol_doner(self):

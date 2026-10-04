@@ -21,7 +21,7 @@
 
 ---
 
-![UI Showcase](docs/ekran-v4-gecmis.png)
+![UI Showcase](assets/showcase.png)
 
 ## Why ai-dl-bridge?
 
@@ -31,14 +31,14 @@ When autonomous AI agents (Claude Code, Cursor, Kimi, local models, or custom ag
 - **Broken Videos:** Modern platforms (YouTube, etc.) serve video and audio as separate DASH streams. Simple downloaders yield audio-less video or low-res fallback streams.
 - **Memory & Bandwidth Flooding:** Massive files (>2GB) can silently saturate system bandwidth and disk storage.
 
-**ai-dl-bridge solves this with a Single Local Gateway (`POST /indir`).** An AI simply sends a link; the bridge resolves metadata, routes the transfer through multi-segmented `aria2`, merges media streams with `ffmpeg`, and visualizes everything inside a frameless, aesthetic mini control panel.
+**ai-dl-bridge solves this with a Single Local Gateway (`POST /download`).** An AI simply sends a link; the bridge resolves metadata, routes the transfer through multi-segmented `aria2`, merges media streams with `ffmpeg`, and visualizes everything inside a frameless, aesthetic mini control panel.
 
 ---
 
 ## Architecture
 
 ```
-[ AI Agent ] ─── POST /indir ───> [ FastAPI Gateway (127.0.0.1:8765+) ]
+[ AI Agent ] ─── POST /download ───> [ FastAPI Gateway (127.0.0.1:8765+) ]
  (Claude / Cursor / Scripts)               │
                                            ├─► [ Link Resolver ] ── yt-dlp (metadata & streams)
                                            ├─► [ Safety Policy ] ── >2GB check (auto-pause safety)
@@ -52,12 +52,12 @@ When autonomous AI agents (Claude Code, Cursor, Kimi, local models, or custom ag
 
 ## Features
 
-- **Single Door for All Agents:** Unauthenticated local REST API (`http://127.0.0.1:8765/indir`). Automatic port collision failover (8765 → 8784).
+- **Single Door for All Agents:** Unauthenticated local REST API (`http://127.0.0.1:8765/download` with backward-compatible `/indir`). Automatic port collision failover (8765 → 8784).
 - **High-Resolution DASH Video Handling:** Resolves separate video and audio streams, downloads both via `aria2` multi-connection streams, and automatically muxes them using bundled `ffmpeg` (`-c copy`, lossless, zero re-encoding). Verified up to 2560×1440@60fps.
 - **IDM-Style Pastel Mini Window:** Frameless, compact window with Resume, Pause, Remove, and Folder opening controls.
 - **Smart Column Sorting:** Interactive column headers (`Name`, `Size`, `Date`) with multi-directional sorting.
 - **Global Speed Limiter:** On-the-fly throttling (`Unlimited`, `1 MB/s`, `5 MB/s`, `10 MB/s`, `25 MB/s`, `Custom`).
-- **Persistent History & Queue Recovery:** Completed downloads and interrupted video merge jobs survive application restarts (`%APPDATA%/ai-dl-bridge/gecmis.json`).
+- **Persistent History & Queue Recovery:** Completed downloads and interrupted video merge jobs survive application restarts (`%APPDATA%/ai-dl-bridge/history.json`).
 - **Safety Policy:** Files exceeding 2 GB are automatically placed in `paused` mode awaiting human approval.
 - **Tray-First Lifecycle:** Closing the window minimizes to the system notification tray; optional Windows autostart.
 
@@ -73,8 +73,8 @@ Download `ai-dl-bridge.exe` from [Releases](https://github.com/emirhanoguz/ai-dl
 # Run with window:
 .\ai-dl-bridge.exe
 
-# Or start silently minimized to tray:
-.\ai-dl-bridge.exe --gizli
+# Or start silently minimized to system tray:
+.\ai-dl-bridge.exe --tray
 ```
 
 ### Option B: Run from Source
@@ -97,43 +97,43 @@ python run.py
 
 ## API Specification
 
-### `POST /indir`
+### `POST /download`
 
-Initiates a download job.
+Initiates a download job (also accessible via legacy alias `POST /indir`).
 
 #### Request Body
 ```json
 {
-  "link": "https://www.youtube.com/watch?v=...",
-  "kimlik": "claude-code",
-  "kalite": "video"
+  "url": "https://www.youtube.com/watch?v=...",
+  "agent": "claude-code",
+  "quality": "video"
 }
 ```
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `link` | string | Yes | — | Direct file URL or video streaming URL |
-| `kimlik` | string | No | `"anonim"` | Identifier of the calling agent (shown in UI) |
-| `kalite` | string | No | `"video"` | Quality profile: `video`, `ses`, `eniyi`, `endusuk` |
+| `url` | string | Yes | — | Direct file URL or video streaming URL |
+| `agent` | string | No | `"anonymous"` | Identifier of the calling agent (shown in UI) |
+| `quality` | string | No | `"video"` | Quality profile: `video`, `audio`, `best`, `lowest` |
 
 #### Quality Profiles
-- `video` (default): Best video + best audio streams merged into `.mp4`.
-- `ses`: Best standalone audio stream (`.m4a`).
-- `eniyi`: Best single combined stream.
-- `endusuk`: Smallest direct stream (ideal for testing or bandwidth preservation).
+- `video` (default): Best video + best audio streams merged into `.mp4` via FFmpeg.
+- `audio`: Best standalone audio stream (`.m4a`).
+- `best`: Best single combined stream.
+- `lowest`: Smallest direct stream (ideal for rapid tests or preserving bandwidth).
 
 #### Responses
 - **`200 OK` (Accepted):**
   ```json
-  {"durum": "kabul", "id": "2089b05e0a3d4f"}
+  {"status": "accepted", "id": "2089b05e0a3d4f"}
   ```
 - **`200 OK` (Approval Needed - Size > 2GB):**
   ```json
-  {"durum": "beklemede", "sebep": "2GB üstü onay bekliyor"}
+  {"status": "pending", "reason": ">2GB requires user approval", "id": "2089b05e0a3d4f"}
   ```
 - **`400 Bad Request` (Invalid link or resolver error):**
   ```json
-  {"durum": "reddedildi", "sebep": "Video çözülemedi: site yanıt vermiyor"}
+  {"status": "rejected", "reason": "Failed to resolve video: site not responding"}
   ```
 
 ---
@@ -142,9 +142,9 @@ Initiates a download job.
 
 ### Using cURL
 ```bash
-curl -X POST http://127.0.0.1:8765/indir \
+curl -X POST http://127.0.0.1:8765/download \
   -H "Content-Type: application/json" \
-  -d '{"link": "https://example.com/dataset.zip", "kimlik": "agent"}'
+  -d '{"url": "https://example.com/dataset.zip", "agent": "research-bot"}'
 ```
 
 ### Using Python
@@ -152,9 +152,9 @@ curl -X POST http://127.0.0.1:8765/indir \
 import urllib.request
 import json
 
-payload = {"link": "https://example.com/data.parquet", "kimlik": "research-bot"}
+payload = {"url": "https://example.com/data.parquet", "agent": "research-bot"}
 req = urllib.request.Request(
-    "http://127.0.0.1:8765/indir",
+    "http://127.0.0.1:8765/download",
     data=json.dumps(payload).encode("utf-8"),
     headers={"Content-Type": "application/json"}
 )

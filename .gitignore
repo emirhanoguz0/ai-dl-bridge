@@ -19,3 +19,8 @@ Thumbs.db
 
 # İndirilen dosyalar (uygulama-içi varsayılan klasör)
 downloads/
+
+# İç geliştirme notları ve planlama (Second Brain içi saklanır, repoya gönderilmez)
+PLAN.md
+docs/
+skills/ai-indirme-koprusu/

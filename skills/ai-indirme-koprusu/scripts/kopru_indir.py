@@ -68,7 +68,7 @@ def _bridge_sunucusu_mu(port: int) -> bool:
     acik ama yanit vermeyen portlari ele — yalnizca FastAPI 422 doner.)"""
     try:
         req = urllib.request.Request(
-            f"http://127.0.0.1:{port}/indir", data=b"x",
+            f"http://127.0.0.1:{port}/download", data=b"x",
             headers={"Content-Type": "application/json"})
         urllib.request.urlopen(req, timeout=3)
         return False
@@ -227,26 +227,32 @@ def bekle_gid(gid: str) -> int:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="ai-dl-bridge ile indir")
-    ap.add_argument("link")
-    ap.add_argument("--kalite", default="video",
-                    choices=["video", "eniyi", "endusuk", "ses"])
-    ap.add_argument("--kimlik", default="kimi")
-    ap.add_argument("--bekle", action="store_true",
-                    help="indirme bitene dek bekle ve ilerlemeyi goster")
+    ap = argparse.ArgumentParser(description="Download files via ai-dl-bridge")
+    ap.add_argument("url", nargs="?", help="Download URL")
+    ap.add_argument("--url", dest="url_opt", help="Download URL (flag)")
+    ap.add_argument("--quality", "--kalite", default="video",
+                    choices=["video", "best", "eniyi", "lowest", "endusuk", "audio", "ses"])
+    ap.add_argument("--agent", "--kimlik", default="agent")
+    ap.add_argument("--wait", "--bekle", action="store_true",
+                    help="wait until download completes and stream progress")
     a = ap.parse_args()
+
+    hedef_url = a.url or a.url_opt
+    if not hedef_url:
+        ap.error("URL is required (positional or --url)")
 
     port = sunucu_hazirla()
     yanit = post_json(
-        f"http://127.0.0.1:{port}/indir",
-        {"link": a.link, "kimlik": a.kimlik, "kalite": a.kalite})
+        f"http://127.0.0.1:{port}/download",
+        {"url": hedef_url, "agent": a.agent, "quality": a.quality})
     print(json.dumps(yanit, ensure_ascii=False))
 
-    if yanit.get("durum") in ("reddedildi",):
+    durum = yanit.get("status") or yanit.get("durum")
+    if durum in ("rejected", "reddedildi"):
         return 1
-    if a.bekle and yanit.get("id"):
+    if (a.wait or a.bekle) and yanit.get("id"):
         return bekle_gid(yanit["id"])
-    print(f"Klasor: {INDIRME_KLASORU}")
+    print(f"Folder: {INDIRME_KLASORU}")
     return 0
 
 

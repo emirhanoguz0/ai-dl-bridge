@@ -53,8 +53,8 @@ def _tek_ornek_kilit():
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="ai-dl-bridge")
-    parser.add_argument("--gizli", action="store_true",
-                        help="pencereyi gösterme, tepside başla")
+    parser.add_argument("--tray", "--silent", "--gizli", dest="tray", action="store_true",
+                        help="start minimized to system tray")
     args = parser.parse_args(argv)
 
     from ui.daemon import Aria2Daemon, DaemonHatasi
@@ -63,13 +63,12 @@ def main(argv: list[str] | None = None) -> int:
     try:
         daemon.start()
     except DaemonHatasi as e:
-        # konsol yokken (paketlenmiş exe) kullanıcı neden açılmadığını bilsin
         try:
             from PyQt6.QtWidgets import QApplication, QMessageBox
             qa = QApplication(sys.argv)
-            QMessageBox.critical(None, "ai-dl-bridge", f"Başlatılamadı:\n\n{e}")
+            QMessageBox.critical(None, "ai-dl-bridge", f"Failed to start:\n\n{e}")
         except ImportError:
-            print(f"Başlatılamadı: {e}", file=sys.stderr)
+            print(f"Failed to start: {e}", file=sys.stderr)
         return 1
 
     sunucu_port = _sunucu_baslat(daemon.rpc)
@@ -79,24 +78,23 @@ def main(argv: list[str] | None = None) -> int:
 
     app = QApplication(sys.argv)
     app.setApplicationName("ai-dl-bridge")
-    app.setQuitOnLastWindowClosed(False)  # tepsi ikonu açıkken pencere kapanınca çıkma
+    app.setQuitOnLastWindowClosed(False)  # do not exit on close when minimized to tray
 
     from ui.app import logo_ikonu
     app.setWindowIcon(logo_ikonu())
 
     kilit = _tek_ornek_kilit()
     if kilit is None:
-        return 0  # zaten çalışan bir örnek var; yenisini açma
+        return 0  # another instance is already running
 
     def klasor_secildi(yeni: str) -> None:
-        # Tek Kapı bundan sonra yeni klasöre indirsin ve seçimi kaydetsin
         sunucu_modul.klasoru_degistir(Path(yeni))
 
     from ui.app import Pencere
     pencere = Pencere(rpc=daemon.rpc, sunucu_portu=sunucu_port,
                       indirme_klasoru=sunucu_modul.INDIRME_KLASORU,
                       klasor_secildi=klasor_secildi)
-    if not args.gizli:
+    if not args.tray:
         pencere.show()
     kod = app.exec()
     daemon.stop()

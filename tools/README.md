@@ -13,4 +13,4 @@ The three companion binaries in this folder are portable standalone executables 
 1. Place the three `.exe` files directly into this `tools/` directory.
 2. All three binaries are portable and require no installer.
 3. While `aria2c` and `ffmpeg` can also be resolved from the system `PATH`, bundling them into `tools/` ensures seamless PyInstaller packaging (`ai-dl-bridge.spec`) into a single standalone `.exe`.
-4. To regenerate application icons: `python tools/logo_hazirla.py`.
+4. To regenerate application icons: `python tools/generate_logo.py`.

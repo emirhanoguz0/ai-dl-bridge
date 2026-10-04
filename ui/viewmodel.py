@@ -50,6 +50,7 @@ def satir_yap(durum: dict) -> dict:
     dosya = (durum.get("files") or [{}])[0]
     ad = (dosya.get("path") or "").rsplit("/", 1)[-1] or durum.get("gid", "?")
     biten = durum_kodu == "complete"
+    eylemler = [] if biten else (["resume", "cancel"] if durum_kodu == "paused" else ["pause", "cancel"])
     return {
         "gid": durum.get("gid"),
         "baslik": ad,
@@ -59,9 +60,8 @@ def satir_yap(durum: dict) -> dict:
         "renk": RENKLER.get(durum_kodu, RENKLER["error"]),
         "bitti": biten,
         "kalan": max(0, top - tam),
-        "aksiyonlar": [] if biten else
-                      (["devam", "iptal"] if durum_kodu == "paused"
-                       else ["durdur", "iptal"]),
+        "actions": eylemler,
+        "aksiyonlar": eylemler,
         "_hiz_bayt": hiz,
     }
 

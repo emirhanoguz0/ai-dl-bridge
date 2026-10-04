@@ -21,7 +21,7 @@ class TestPolicy:
 
     def test_iki_gb_ustu_beklemede(self):
         k = degerlendir(ONAY_LIMITI + 1)
-        assert k.beklemede and "onay" in k.sebep.lower()
+        assert k.beklemede and ("approval" in k.sebep.lower() or "onay" in k.sebep.lower())
 
     def test_boyut_bilinmiyorsa_guvenli_taraf(self):
         k = degerlendir(None)
@@ -162,26 +162,36 @@ class TestSunucu:
     def test_reddedildi_yolu(self):
         from bridge.resolver import VideoCozumHatasi
         client = self._client(self._SahteRPC())
-        with patch("bridge.server.coz", side_effect=VideoCozumHatasi("link ölü")), \
+        with patch("bridge.server.coz", side_effect=VideoCozumHatasi("link dead")), \
              patch("bridge.server.coz_video",
-                   side_effect=VideoCozumHatasi("video ölü")):
-            r = client.post("/indir", json={"link": "https://youtu.be/x", "kimlik": "kimi"})
-        assert r.json()["durum"] == "reddedildi" and "ölü" in r.json()["sebep"]
+                   side_effect=VideoCozumHatasi("video dead")):
+            # English endpoint and payload
+            r = client.post("/download", json={"url": "https://youtu.be/x", "agent": "kimi"})
+            assert r.json()["status"] == "rejected" and "dead" in r.json()["reason"]
+            assert r.json()["durum"] == "reddedildi"
+            # Legacy endpoint and payload
+            r_legacy = client.post("/indir", json={"link": "https://youtu.be/x", "kimlik": "kimi"})
+            assert r_legacy.json()["durum"] == "reddedildi"
 
     def test_kabul_yolu(self):
         rpc = self._SahteRPC()
         client = self._client(rpc)
         with patch("bridge.server.coz",
                    return_value=Cozum(link="http://x/f.zip", boyut=100)):
-            r = client.post("/indir", json={"link": "http://x/f.zip", "kimlik": "kimi"})
-        assert r.json()["durum"] == "kabul" and r.json()["id"] == "gid-sahte"
-        assert rpc.cagrilar == [("http://x/f.zip", False)]
+            # English endpoint and payload
+            r = client.post("/download", json={"url": "http://x/f.zip", "agent": "kimi"})
+            assert r.json()["status"] == "accepted" and r.json()["id"] == "gid-sahte"
+            assert r.json()["durum"] == "kabul"
+            # Legacy endpoint
+            r_legacy = client.post("/indir", json={"link": "http://x/f.zip", "kimlik": "kimi"})
+            assert r_legacy.json()["durum"] == "kabul"
+        assert rpc.cagrilar == [("http://x/f.zip", False), ("http://x/f.zip", False)]
 
     def test_beklemede_yolu(self):
         rpc = self._SahteRPC()
         client = self._client(rpc)
         with patch("bridge.server.coz",
                    return_value=Cozum(link="http://x/b.zip", boyut=10 * 1024**3)):
-            r = client.post("/indir", json={"link": "http://x/b.zip", "kimlik": "kimi"})
-        assert r.json()["durum"] == "beklemede"
-        assert rpc.cagrilar == [("http://x/b.zip", True)]  # paused=True ile kuyruğa atıldı
+            r = client.post("/download", json={"url": "http://x/b.zip", "agent": "kimi"})
+            assert r.json()["status"] == "pending" and r.json()["durum"] == "beklemede"
+        assert rpc.cagrilar == [("http://x/b.zip", True)]  # paused=True in queue

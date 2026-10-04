@@ -17,7 +17,7 @@ class DaemonHatasi(Exception):
 
 
 def binary_bul() -> str:
-    """tools/aria2c.exe → PATH sırasıyla ara; yoksa DaemonHatasi."""
+    """tools/aria2c.exe → PATH search order; raises DaemonHatasi if not found."""
     yerel = paket_koku() / "tools" / "aria2c.exe"
     if yerel.exists():
         return str(yerel)
@@ -25,7 +25,7 @@ def binary_bul() -> str:
     if yol:
         return yol
     raise DaemonHatasi(
-        "aria2c bulunamadı — tools/aria2c.exe koyun veya PATH'e ekleyin "
+        "aria2c not found — place tools/aria2c.exe or add to PATH "
         "(https://github.com/aria2/aria2/releases)")
 
 
@@ -39,7 +39,7 @@ class Aria2Daemon:
     def start(self) -> None:
         exe = binary_bul()
         if self.healthy():
-            return  # zaten çalışıyor (başka bir örnek mi?)
+            return  # already running
         self._surec = subprocess.Popen(
             [exe, "--enable-rpc", "--rpc-listen-all=false",
              f"--rpc-listen-port={self.port}", "--rpc-max-request-size=4M",
@@ -49,15 +49,15 @@ class Aria2Daemon:
              "--allow-overwrite=false", "--auto-file-renaming=true"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        for _ in range(50):  # ~5 sn bekle
+        for _ in range(50):  # ~5 sec wait
             if self.healthy():
                 return
             if self._surec.poll() is not None:
                 raise DaemonHatasi(
-                    f"aria2c başlayamadı (kod {self._surec.returncode}) — "
+                    f"aria2c failed to start (exit code {self._surec.returncode}) — "
                     f"log: {self._gizli_dosya}")
             time.sleep(0.1)
-        raise DaemonHatasi("aria2c 5 sn içinde yanıt vermedi")
+        raise DaemonHatasi("aria2c did not respond within 5 seconds")
 
     def healthy(self) -> bool:
         try:

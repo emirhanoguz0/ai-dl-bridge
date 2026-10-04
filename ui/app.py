@@ -23,7 +23,7 @@ from PyQt6.QtWidgets import (QApplication, QComboBox, QFileDialog, QHBoxLayout,
                              QMenu, QMessageBox, QProgressBar, QStyle,
                              QSystemTrayIcon, QToolButton, QVBoxLayout, QWidget)
 
-from bridge import birlestirici
+from bridge import muxer
 from bridge.aria2_rpc import Aria2Error, Aria2RPC
 from bridge.paths import paket_koku
 from ui import autostart, viewmodel
@@ -33,8 +33,11 @@ BITEN_KAYIT_SINIRI = 200    # listede + diskte tutulacak en fazla tamamlanan sat
 MAKS_BEKLEYEN = 1000        # tellWaiting'de istenecek satır sayısı
 HIZ_SECENEKLERI = ["Unlimited", "1 MB/s", "5 MB/s", "10 MB/s", "25 MB/s",
                    "50 MB/s", "Custom…"]
-GECMIS_DOSYA = Path(os.environ.get("APPDATA") or Path.home()) \
+HISTORY_FILE = Path(os.environ.get("APPDATA") or Path.home()) \
+    / "ai-dl-bridge" / "history.json"
+LEGACY_HISTORY_FILE = Path(os.environ.get("APPDATA") or Path.home()) \
     / "ai-dl-bridge" / "gecmis.json"
+GECMIS_DOSYA = HISTORY_FILE
 
 # pastel palet
 ZEMIN = "#faf6f0"
@@ -443,7 +446,7 @@ class Pencere(QWidget):
         try:
             self.rpc.set_speed_limit(self._hiz_limit_mb * 1024 * 1024)
         except Aria2Error as e:
-            QMessageBox.warning(self, "Hız limiti", str(e))
+            QMessageBox.warning(self, "Speed limit", str(e))
 
     # ---------- başlık çubuğu sürükleme ----------
 
@@ -484,7 +487,7 @@ class Pencere(QWidget):
         simdiki_gidler = {d.get("gid") for d in durumlar}
         self._bitenleri_yakala(simdiki_gidler, durumlar)
         self._durdurulmuslari_isle()
-        birlestirici.bekleyenleri_isle(self.rpc, self._birlesme_biti)
+        muxer.bekleyenleri_isle(self.rpc, self._birlesme_biti)
         self._onceki_gidler = simdiki_gidler
 
         satirlar = [viewmodel.satir_yap(d) for d in durumlar]
@@ -514,7 +517,7 @@ class Pencere(QWidget):
 
     def _bitenleri_yakala(self, simdiki: set, durumlar: list) -> None:
         """Önceki turda olup şimdi kuyrukta görünmeyen gid'leri sor."""
-        parcalar = birlestirici.parca_gidleri()
+        parcalar = muxer.parca_gidleri()
         for gid in self._onceki_gidler - simdiki:
             if gid in parcalar:
                 continue  # video birleştirme parçası — ayrıca takip ediliyor
@@ -535,7 +538,7 @@ class Pencere(QWidget):
             durdurulanlar = self.rpc.tell_stopped(0, MAKS_BEKLEYEN)
         except Aria2Error:
             return
-        parcalar = birlestirici.parca_gidleri()
+        parcalar = muxer.parca_gidleri()
         for durum in durdurulanlar:
             gid = durum.get("gid")
             if not gid or gid in self._bitenler or gid in parcalar:
@@ -589,11 +592,15 @@ class Pencere(QWidget):
     # ---------- kalıcı geçmiş ----------
 
     def _gecmis_oku(self) -> list:
-        try:
-            kayitlar = json.loads(GECMIS_DOSYA.read_text(encoding="utf-8"))
-            return kayitlar if isinstance(kayitlar, list) else []
-        except (OSError, json.JSONDecodeError):
-            return []
+        for f in (HISTORY_FILE, LEGACY_HISTORY_FILE):
+            try:
+                if f.exists():
+                    kayitlar = json.loads(f.read_text(encoding="utf-8"))
+                    if isinstance(kayitlar, list):
+                        return kayitlar
+            except (OSError, json.JSONDecodeError):
+                pass
+        return []
 
     def _gecmis_yukle(self) -> None:
         """Diskteki tamamlananları listeye geri koy (oturumlar arası kalıcılık)."""
@@ -651,7 +658,7 @@ class Pencere(QWidget):
             bos = QListWidgetItem()
             bos.setFlags(Qt.ItemFlag.NoItemFlags)
             yazi = QLabel("No downloads\n\n"
-                          f"AI agents POST to 127.0.0.1:{self.sunucu_portu}/indir"
+                          f"AI agents POST to 127.0.0.1:{self.sunucu_portu}/download"
                           "\nand their downloads appear here")
             yazi.setAlignment(Qt.AlignmentFlag.AlignCenter)
             yazi.setStyleSheet(f"color: {IKINCI}; font-size: 12px; background: transparent;")
@@ -758,9 +765,9 @@ class Pencere(QWidget):
                 self.klasor_secildi(yeni)
 
     def _baglanti_bilgisi(self) -> None:
-        adres = f"http://127.0.0.1:{self.sunucu_portu}/indir"
-        ornek = json.dumps({"link": "https://example.com/file.zip",
-                            "kimlik": "my-ai"}, indent=2)
+        adres = f"http://127.0.0.1:{self.sunucu_portu}/download"
+        ornek = json.dumps({"url": "https://example.com/file.zip",
+                            "agent": "my-ai"}, indent=2)
         metin = (f"AI agents POST to this address:\n\n  {adres}\n\n"
                  f"Body (JSON):\n{ornek}\n\n"
                  f"curl example:\n"

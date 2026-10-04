@@ -13,11 +13,11 @@ RUN_YOLU = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 
 def baslatma_komutu() -> str:
-    """Run anahtarına yazılacak komut satırı."""
+    """Run key command line."""
     if getattr(sys, "frozen", False):
-        return f'"{sys.executable}" --gizli'
+        return f'"{sys.executable}" --tray'
     run_py = Path(__file__).resolve().parent.parent / "run.py"
-    return f'"{sys.executable}" "{run_py}" --gizli'
+    return f'"{sys.executable}" "{run_py}" --tray'
 
 
 def _winreg():

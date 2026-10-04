@@ -14,21 +14,21 @@ durdurulabilmesi.
 1. `scripts/kopru_indir.py` betiğini çalıştır:
 
    ```bash
-   python <skill-koku>/scripts/kopru_indir.py "<URL>" --bekle
+   python <skill-koku>/scripts/kopru_indir.py "<URL>" --wait
    ```
 
-2. `--bekle` sonucu `TAMAM: <yol> (<boyut>)` verene dek bekle; dosya yolunu kullanıcıya bildir.
-3. Sunucu kapalıysa betik exe'yi `--gizli` kipte kendi başlatır; hiçbir şey yapmana gerek yok.
+2. `--wait` (veya `--bekle`) sonucu `TAMAM: <yol>` verene dek bekle; dosya yolunu kullanıcıya bildir.
+3. Sunucu kapalıysa betik exe'yi `--tray` kipte kendi başlatır; hiçbir şey yapmana gerek yok.
 
 ## Parametreler
 
-- `--kalite video` (varsayılan): gerçek video. En iyi görüntü + en iyi ses akışı
+- `--quality video` (veya `--kalite video`, varsayılan): gerçek video. En iyi görüntü + en iyi ses akışı
   ayrı ayrı iner, uygulama ffmpeg ile tek mp4'ta birleştirir (DASH çağında tek
   akışta sesli yüksek kalite yoktur).
-- `--kalite ses`: en iyi ses akışı (m4a) — şarkılar için.
-- `--kalite eniyi`: en iyi TEK dosya akışı (birleşik akış varsa; yoksa sessiz görüntü).
-- `--kalite endusuk`: hızlı testlerde en küçük direkt indirilebilir dosya.
-- `--kimlik`: listede görünecek AI adı (ör. `kimi`).
+- `--quality audio` (veya `--kalite ses`): en iyi ses akışı (m4a) — şarkılar için.
+- `--quality best` (veya `--kalite eniyi`): en iyi TEK dosya akışı.
+- `--quality lowest` (veya `--kalite endusuk`): hızlı testlerde en küçük direkt indirilebilir dosya.
+- `--agent` (veya `--kimlik`): listede görünecek AI adı (ör. `kimi`).
 
 ## Çıktı yeri
 

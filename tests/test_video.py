@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bridge import birlestirici  # noqa: E402
+from bridge import muxer, birlestirici  # noqa: E402
 from bridge.resolver import (VideoCozumHatasi, VideoPlan, coz_video,  # noqa: E402
                              temiz_ad)
 from ui.viewmodel import satir_yap  # noqa: E402
@@ -61,7 +61,7 @@ class TestCozVideo:
             coz_video("https://youtu.be/abc")
 
 
-class TestBirlestirici:
+class TestMuxer:
     def _job(self, tmp_path, sesli=True):
         video = tmp_path / "v [part1].mp4"
         video.write_bytes(b"12345")
@@ -74,29 +74,30 @@ class TestBirlestirici:
                 "boyut": 8, "deneme": 0}
 
     def test_parcalar_eksiksizse_tamam(self, tmp_path):
+        assert muxer._is_tamamlandi(self._job(tmp_path))
         assert birlestirici._is_tamamlandi(self._job(tmp_path))
 
     def test_aria2_artigi_varsa_bekle(self, tmp_path):
         job = self._job(tmp_path)
         Path(job["video_yol"] + ".aria2").write_text("")
-        assert not birlestirici._is_tamamlandi(job)
+        assert not muxer._is_tamamlandi(job)
 
     def test_tek_parca_birlesim_tasima(self, tmp_path, monkeypatch):
         job = self._job(tmp_path, sesli=False)
-        monkeypatch.setattr(birlestirici, "isleri_oku", lambda: [job])
-        monkeypatch.setattr(birlestirici, "_yaz", lambda x: None)
+        monkeypatch.setattr(muxer, "isleri_oku", lambda: [job])
+        monkeypatch.setattr(muxer, "_yaz", lambda x: None)
 
         class _SoyRpc:
             def remove_download_result(self, gid):
                 return "ok"
-        sonuc = birlestirici.bekleyenleri_isle(rpc=_SoyRpc())
-        assert sonuc[0][1] == "tamam"
-        assert not Path(job["video_yol"]).exists()  # parça yerine taşındı
+        sonuc = muxer.bekleyenleri_isle(rpc=_SoyRpc())
+        assert sonuc[0][1] in ("done", "tamam")
+        assert not Path(job["video_yol"]).exists()  # part moved to destination
 
     def test_parca_gidleri_kumesi(self, tmp_path, monkeypatch):
         job = self._job(tmp_path)
-        monkeypatch.setattr(birlestirici, "isleri_oku", lambda: [job])
-        assert birlestirici.parca_gidleri() == {"g1", "g2"}
+        monkeypatch.setattr(muxer, "isleri_oku", lambda: [job])
+        assert muxer.parca_gidleri() == {"g1", "g2"}
 
 
 class TestSatirTamAd:
