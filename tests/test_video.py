@@ -27,6 +27,7 @@ class TestTemizAd:
 def _mock_ytdlp(monkeypatch, parcalar, baslik="Test Video"):
     def sahte(komut, link):
         return {"title": baslik, "requested_downloads": parcalar}
+    monkeypatch.setattr("bridge.resolver._yt_dlp_yolu", lambda: "yt-dlp")
     monkeypatch.setattr("bridge.resolver._yt_dlp_calistir", sahte)
 
 
