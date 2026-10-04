@@ -164,8 +164,13 @@ class TestDaemon:
              patch("ui.daemon.shutil.which", return_value="/usr/bin/aria2c"):
             assert binary_bul() == "/usr/bin/aria2c"
 
-    def test_yerel_binary_once_gelir(self):
+    def test_yerel_binary_once_gelir(self, tmp_path, monkeypatch):
         """tools/aria2c.exe varken PATH'e hiç bakılmaz."""
-        from ui.daemon import binary_bul
-        yol = binary_bul()
-        assert yol.endswith("aria2c.exe")
+        from ui import daemon
+        (tmp_path / "tools").mkdir(parents=True, exist_ok=True)
+        sahte_yerel = tmp_path / "tools" / "aria2c.exe"
+        sahte_yerel.write_text("sahte")
+        monkeypatch.setattr(daemon, "paket_koku", lambda: tmp_path)
+        with patch("ui.daemon.shutil.which", return_value="C:\\Windows\\System32\\aria2c.exe"):
+            yol = daemon.binary_bul()
+            assert yol == str(sahte_yerel)

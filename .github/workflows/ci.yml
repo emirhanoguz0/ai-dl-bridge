@@ -25,6 +25,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install aria2
+        run: |
+          choco install aria2 --no-progress
+
       - name: Run test suite
         run: |
           python -m pytest tests/ -v
